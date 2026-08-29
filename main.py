@@ -12,7 +12,9 @@ WIDTH, HEIGHT = 1000, 800
 FPS = 60
 PLAYER_VEL = 5
 
+
 window = pygame.display.set_mode((WIDTH, HEIGHT))
+
 
 def flip(sprites):
     return [pygame.transform.flip(sprite, True, False) for sprite in sprites]
@@ -41,12 +43,18 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
 
     return all_sprites
 
+def get_block(size):
+    path = join("assets", "Terrain", "Terrain.png")
+
+
 class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
     SPRITES = load_sprite_sheets("MainCharacters", "MaskDude", 32, 32, True)
+    ANIMATION_DELAY = 3
 
     def __init__(self, x, y, width, height):
+        super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
         self.x_vel = 0
         self.y_vel = 0
@@ -76,10 +84,48 @@ class Player(pygame.sprite.Sprite):
         self.move(self.x_vel, self.y_vel)
 
         self.fall_count += 1
+        self.update_sprite()
+
+    def update_sprite(self):
+        sprite_sheet = "idle"
+        if self.x_vel != 0:
+            sprite_sheet = "run"
+
+        sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.SPRITES[sprite_sheet_name]
+        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+        self.update()
+
+# I added self to the following function
+    def update(self):
+        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.sprite)
 
     def draw(self, win):
-        self.sprite = self.SPRITES["idle_" + self.direction][0]
         win.blit(self.sprite, (self.rect.x, self.rect.y))
+
+
+class Object(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height, name=None):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.width = width
+        self.height = height
+        self.name = name
+
+    def draw(self, win):
+        win.blit(self.image, (self.rect.x, self.rect.y))
+
+class Block(Object):
+    def __init__(self, x, y, size):
+        super().__init__(x, y, size, size)
+        block = load_block(size)
+        self.image.blit(block, (0, 0))
+        self.mask = pygame.mask.from_surface(self.image)
+
 
 
 def get_background(name):
